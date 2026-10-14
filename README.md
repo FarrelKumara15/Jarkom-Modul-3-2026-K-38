@@ -11,7 +11,23 @@
 
 <br/>
 
-Sebelum masuk ke soal 11 jalankan ``setup.sh`` di node ``utahime``, ``shoko``, ``yaga``, ``inumaki``, ``maki``, ``panda``, ``nanami``, ``todo``, ``kirara``, ``geto``, & ``gojo``. <br/>
+| Node | IP | Fungsi |
+|---|---|---|
+| jichi | 192.230.1.1, .2.1, .3.1, .4.1 | Router/NAT/relay |
+| utahime | 192.230.1.2 | BIND9 master |
+| shoko | 192.230.1.3 | BIND9 slave |
+| gojo | 192.230.1.4 | Reverse proxy publik, cache, rate limit |
+| geto | 192.230.4.2 | Load balancer API |
+| maki / panda | 192.230.4.3 / .4.4 | Web frontend |
+| nanami / todo / kirara | 192.230.4.5 / .4.6 / .4.7 | API utama / utama / cadangan |
+| yaga / inumaki | 192.230.4.8 / .4.9 | MariaDB master / slave |
+| kusakabe | DHCP | Client untuk Apache Benchmark |
+
+<br/>
+
+Sebelum masuk ke soal 11 jalankan ``setup.sh`` di node ``utahime``, ``shoko``, ``yaga``, ``inumaki``, ``maki``, ``panda``, ``nanami``, ``todo``, ``kirara``, ``geto``, & ``gojo``. 
+
+<br/>
 
 Script ini berfungsi sebagai mempersiapkan IP dan memasang paket <br/>
 
@@ -35,10 +51,25 @@ Jalankan ``dns-slave.sh`` di node ``shoko`` <br/>
 bash dns-slave.sh
 ```
 
+Cek di node
+
+```bash
+dig @192.230.1.2 jujutsu.k38.com SOA +noall +answer
+dig @192.230.1.3 jujutsu.k38.com SOA +noall +answer
+dig @192.230.1.2 jujutsu.k38.com NS +noall +answer
+dig @192.230.1.3 jujutsu.k38.com NS +noall +answer
+```
+
 Jalankan ``serial.sh`` di node ``utahime`` <br/>
 
 ```bash
 bash serial.sh
+```
+Cek di node
+
+```bash
+dig @192.230.1.2 jujutsu.k38.com SOA +noall +answer
+dig @192.230.1.3 jujutsu.k38.com SOA +noall +answer
 ```
 
 <br/>
@@ -58,6 +89,18 @@ Jalankan ``dns-record-slave.sh`` di node ``shoko`` <br/>
 
 ```bash
 bash dns-record-slave.sh
+```
+
+Cek di node
+
+```bash 
+dig @192.230.1.2 jujutsu.k38.com A +noall +answer
+dig @192.230.1.2 www.jujutsu.k38.com CNAME +noall +answer
+dig @192.230.1.2 -x 192.230.1.4 +noall +answer
+dig @192.230.1.3 -x 192.230.1.4 +noall +answer
+dig @192.230.1.2 google.com A +short
+cat /etc/resolv.conf
+ping -c 3 google.com
 ```
 
 <br/>
@@ -94,6 +137,16 @@ Jalankan ``setup-worker.sh`` di node ``maki``, ``panda``, ``nanami``, ``todo``, 
 bash database-slave.sh <nama node>
 ```
 
+Cek di node
+
+```bash
+for ip in 192.230.4.3 192.230.4.4 192.230.4.5 192.230.4.6 192.230.4.7; do
+  curl -s -o /dev/null -w "$ip HTTP=%{http_code}\n" -H 'Host: jujutsu.k38.com' "http://$ip/"
+done
+curl -i http://jujutsu.k38.com/
+curl -i http://jujutsu.k38.com/api
+```
+
 #### Soal 15
 Geto bertugas mengendalikan pembagian beban request API di internal Data Center agar server tidak tumbang bersamaan. Konfigurasikan Nginx pada geto sebagai Load Balancer internal dengan upstream api_cluster yang mengarahkan trafik ke nanami dan todo. Terapkan algoritma Weighted Round Robin dengan bobot 3:1, di mana nanami menerima porsi beban tiga kali lebih banyak daripada todo. Buktikan distribusi beban ini dengan melakukan loop request berulang kali ke geto dari jaringan lokal Data Center dan periksa rasio responnya.
 
@@ -122,6 +175,14 @@ Jalankan ``reverse-proxy.sh`` di node ``gojo`` <br/>
 bash reverse-proxy.sh
 ```
 
+Cek di node
+
+```bash 
+for i in 1 2 3 4 5 6; do curl -s "http://jujutsu.k38.com/?rr=$i"; done
+curl -i http://www.jujutsu.k38.com/
+curl -i http://jujutsu.k38.com/api
+```
+
 <br/>
 
 #### Soal 17
@@ -133,6 +194,20 @@ Jalankan ``real-client-ip.sh`` di node ``geto`` <br/>
 
 ```bash
 bash real-client-ip.sh
+```
+
+Cek di node
+
+```bash
+ip -4 addr show eth0
+curl -s http://jujutsu.k38.com/api
+curl -s -H 'X-Real-IP: 8.8.8.8' -H 'X-Forwarded-For: 8.8.8.8' http://jujutsu.k38.com/api
+```
+
+di node yaga
+
+```bash
+mariadb db_shibuya_K38 -e 'SELECT id,worker,client_ip,method,path,created_at FROM request_logs ORDER BY id DESC LIMIT 12;'
 ```
 
 <br/>
@@ -148,19 +223,70 @@ Jalankan ``api-failover.sh`` di node ``geto`` <br/>
 bash api-failover.sh
 ```
 
+```bash
+# Pada nanami DAN todo
+service nginx stop
+
+# Pada client (jeda agar tidak mencampur uji dengan rate limit)
+for i in 1 2 3 4 5 6; do
+  curl -s -w ' HTTP=%{http_code}\n' http://jujutsu.k38.com/api
+  sleep 1
+done
+
+# Setelah mengambil bukti: hidupkan kembali pada nanami DAN todo
+service nginx start
+```
+
 <br/>
 
 #### Soal 19
 gojo bertugas mengoptimalkan layanan web sekaligus membatasi request berlebihan. Konfigurasikan Nginx Proxy Caching untuk halaman web frontend dengan masa berlaku cache 10 menit dan tambahkan header X-Cache-Status. Terapkan rate limiting pada path /api dengan batas 10 request per detik per IP klien. Buktikan bahwa request ke halaman web yang memenuhi syarat cache menghasilkan status MISS pada akses awal dan HIT pada akses berikutnya. Uji rate limiting secara terpisah dengan mengirimkan request beruntun ke /api, kemudian catat status respons yang dihasilkan ketika batas terlampaui.
 
-Jalankan ``cache-rate-limit.sh`` di node ``gojo`` 
 <br/>
+
+Jalankan ``cache-rate-limit.sh`` di node ``gojo`` 
 
 ```bash
 bash cache-rate-limit.sh
+```
+
+```bash
+# Pada client: gunakan URL sama dua kali agar terlihat MISS lalu HIT
+key=$(date +%s)
+curl -i "http://jujutsu.k38.com/?cachetest=$key"
+curl -i "http://jujutsu.k38.com/?cachetest=$key"
+
+# Pada client: uji API secara paralel
+seq 1 100 | xargs -P 30 -I '{}' curl -s -o /dev/null -w '%{http_code}\n' http://jujutsu.k38.com/api | sort | uniq -c
 ```
 
 <br/>
 
 #### Soal 20
 Sebelum Curtain di Shibuya resmi dibuka, Kusakabe memimpin audit untuk menguji kapasitas layanan. Dari terminal kusakabe, jalankan benchmark menggunakan Apache Benchmark dengan parameter -n 600 -c 30 menuju http://jujutsu.<xxxx>.com/. Catat Requests per Second (RPS), latensi, dan jumlah request yang gagal. Lakukan pengujian tambahan pada endpoint /api untuk mengamati efek rate limiting. Bandingkan hasil pengujian baseline dengan hasil ketika rate limiting aktif, serta gunakan access log gojo untuk membedakan kegagalan aplikasi, koneksi, dan request yang ditolak oleh kebijakan rate limit.
+
+<br/>
+
+Jalankan ``rate-mode.sh baseline`` di node ``gojo`` 
+
+```bash
+bash rate-mode.sh baseline
+```
+
+Jalankan ``benchmark.sh baseline`` di node ``kusakabe`` 
+
+```bash
+bash benchmark.sh baseline
+```
+
+Jalankan ``rate-mode.sh active`` di node ``gojo`` 
+
+```bash
+bash rate-mode.sh active
+```
+
+Jalankan ``benchmark.sh active`` di node ``kusakabe`` 
+
+```bash
+bash benchmark.sh active
+```
