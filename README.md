@@ -582,6 +582,8 @@ udhcpc -i eth0 -n
 
 ![](assets/soal10-itadori.png)
 
+![](assets/soal10-zenin.png)
+
 <br/>
 
 | Node                   | IP                            | Fungsi                                  |
