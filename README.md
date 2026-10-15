@@ -554,23 +554,7 @@ udhcpc -i eth0 -n
 
 Pastikan **DHCP server (tengen)** dan **DHCP relay (jichi)** berjalan otomatis saat node direstart.
 
-Jalankan di node `tengen`
-
-```bash
-update-rc.d isc-dhcp-server defaults
-```
-
-![](assets/soal10-tengen.png)
-
-Jalankan di node `jichi`
-
-```bash
-update-rc.d isc-dhcp-relay defaults
-```
-
-![](assets/soal10-jichi.png)
-
-Restart node `tengen` dan `jichi` untuk mengecek apakah autostart berfungsi. Jika perintah `reboot` tidak tersedia di node, cukup restart service-nya:
+Restart node `tengen` dan `jichi` untuk mengecek apakah autostart berfungsi. Bisa dilakukan secara manual di GNS atau cukup restart service-nya:
 
 ```bash
 service isc-dhcp-server restart   # tengen
