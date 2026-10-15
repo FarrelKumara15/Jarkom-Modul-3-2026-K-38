@@ -554,6 +554,12 @@ udhcpc -i eth0 -n
 
 Pastikan **DHCP server (tengen)** dan **DHCP relay (jichi)** berjalan otomatis saat node direstart.
 
+Masukkan semua script yang sudah dibuat ke `/root/.bashrc`
+
+![](assets/soal10-jichi.png)
+
+![](assets/soal10-tengen.png)
+
 Restart node `tengen` dan `jichi` untuk mengecek apakah autostart berfungsi. Bisa dilakukan secara manual di GNS atau cukup restart service-nya:
 
 ```bash
