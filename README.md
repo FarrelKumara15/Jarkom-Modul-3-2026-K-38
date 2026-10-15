@@ -615,11 +615,15 @@ bash setup.sh
 Utahime dan Shoko ditugaskan membangun sistem penamaan domain resmi agar seluruh pos tidak perlu menghafal alamat IP mentah. Konfigurasikan BIND9 pada utahime sebagai DNS Master dan shoko sebagai DNS Slave untuk mengelola domain jujutsu.<xxxx>.com. Atur SOA record, NS delegasi untuk kedua server, dan terapkan allow-transfer dari Master ke Slave. Pastikan file zona berhasil tersinkronisasi otomatis ke shoko saat nomor serial di utahime dinaikkan, lalu buktikan dengan melakukan query dig ke kedua server dari salah satu client.
 
 <br/>
-Jalankan ``dns-master.sh`` di node ``utahime`` <br/>
+Jalankan `dns-master.sh` di node `utahime` <br/>
 
 ```bash
 bash dns-master.sh
 ```
+
+![](assets/dns-master.png) 
+
+<br/>
 
 Jalankan `dns-slave.sh` di node `shoko` <br/>
 
@@ -627,7 +631,9 @@ Jalankan `dns-slave.sh` di node `shoko` <br/>
 bash dns-slave.sh
 ```
 
-Cek di node
+![](assets/dns-slave.png) <br/>
+
+Uji DNS di itadori
 
 ```bash
 dig @192.230.1.2 jujutsu.k38.com SOA +noall +answer
@@ -636,18 +642,24 @@ dig @192.230.1.2 jujutsu.k38.com NS +noall +answer
 dig @192.230.1.3 jujutsu.k38.com NS +noall +answer
 ```
 
+![](assets/uji-dns.png) 
+
 Jalankan `serial.sh` di node `utahime` <br/>
 
 ```bash
 bash serial.sh
 ```
 
-Cek di node
+![](assets/serial.png) <br/>
+
+Cek DNS di node `itadori`
 
 ```bash
 dig @192.230.1.2 jujutsu.k38.com SOA +noall +answer
 dig @192.230.1.3 jujutsu.k38.com SOA +noall +answer
 ```
+
+![](assets/uji-dns-serial.png) 
 
 <br/>
 
@@ -663,11 +675,15 @@ Jalankan `dns-record-master.sh` di node `utahime` <br/>
 bash dns-record-master.sh
 ```
 
+![](assets/dns-record-master.png) 
+
 Jalankan `dns-record-slave.sh` di node `shoko` <br/>
 
 ```bash
 bash dns-record-slave.sh
 ```
+
+![](assets/dns-record-slave.png) 
 
 Cek di node
 
@@ -680,6 +696,8 @@ dig @192.230.1.2 google.com A +short
 cat /etc/resolv.conf
 ping -c 3 google.com
 ```
+
+![](assets/uji-dns-record.png) 
 
 <br/>
 
@@ -695,11 +713,15 @@ Jalankan `database-master.sh` di node `yaga` <br/>
 bash database-master.sh
 ```
 
+![](assets/database-master.png) <br/>
+
 Jalankan `database-slave.sh` di node `inumaki` <br/>
 
 ```bash
 bash database-slave.sh
 ```
+
+![](assets/database-slave.png) 
 
 <br/>
 
@@ -714,8 +736,10 @@ Jalankan `setup-worker.sh` di node `maki`, `panda`, `nanami`, `todo`, & `kirara`
 <br/>
 
 ```bash
-bash database-slave.sh <nama node>
+bash setup-worker.sh <nama node>
 ```
+
+![](assets/setup-worker.png) <br/>
 
 Cek di node
 
@@ -739,9 +763,13 @@ Jalankan `load-balancer.sh` & `load-balancer-test` di node `geto` <br/>
 bash load-balancer.sh
 ```
 
+![](assets/load-balancer.png) <br/>
+
 ```bash
 bash load-balancer-test
 ```
+
+![](assets/load-balancer-test.png) <br/>
 
 <br/>
 
@@ -756,6 +784,8 @@ Jalankan `reverse-proxy.sh` di node `gojo` <br/>
 ```bash
 bash reverse-proxy.sh
 ```
+
+![](assets/reverse-proxy.png) <br/>
 
 Cek di node
 
@@ -778,6 +808,8 @@ Jalankan `real-client-ip.sh` di node `geto` <br/>
 ```bash
 bash real-client-ip.sh
 ```
+
+![](assets/real-client-ip.png) <br/>
 
 Cek di node
 
@@ -807,6 +839,8 @@ Jalankan `api-failover.sh` di node `geto` <br/>
 bash api-failover.sh
 ```
 
+![](assets/api-failover.png) <br/>
+
 ```bash
 # Pada nanami DAN todo
 service nginx stop
@@ -834,6 +868,8 @@ Jalankan `cache-rate-limit.sh` di node `gojo`
 ```bash
 bash cache-rate-limit.sh
 ```
+
+![](assets/cache-rate-limit.png) <br/>
 
 ```bash
 # Pada client: gunakan URL sama dua kali agar terlihat MISS lalu HIT
