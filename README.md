@@ -114,7 +114,7 @@ ip link set eth0 up
 ip addr flush dev eth0
 ip addr add 192.230.4.10/24 dev eth0
 ip route replace default via 192.230.4.1
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver  192.168.122.1" > /etc/resolv.conf
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
