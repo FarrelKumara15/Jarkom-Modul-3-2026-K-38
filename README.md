@@ -615,6 +615,7 @@ bash setup.sh
 Utahime dan Shoko ditugaskan membangun sistem penamaan domain resmi agar seluruh pos tidak perlu menghafal alamat IP mentah. Konfigurasikan BIND9 pada utahime sebagai DNS Master dan shoko sebagai DNS Slave untuk mengelola domain jujutsu.<xxxx>.com. Atur SOA record, NS delegasi untuk kedua server, dan terapkan allow-transfer dari Master ke Slave. Pastikan file zona berhasil tersinkronisasi otomatis ke shoko saat nomor serial di utahime dinaikkan, lalu buktikan dengan melakukan query dig ke kedua server dari salah satu client.
 
 <br/>
+
 Jalankan `dns-master.sh` di node `utahime` <br/>
 
 ```bash
@@ -685,7 +686,7 @@ bash dns-record-slave.sh
 
 ![](assets/dns-record-slave.png) 
 
-Cek di node
+Uji DNS di node 'itadori'
 
 ```bash
 dig @192.230.1.2 jujutsu.k38.com A +noall +answer
@@ -723,6 +724,25 @@ bash database-slave.sh
 
 ![](assets/database-slave.png) 
 
+Cek Master di node 'yaga'
+
+```bash
+mariadb -e 'SHOW MASTER STATUS;'
+mariadb db_shibuya_K38 -e "INSERT INTO request_logs(worker,client_ip,method,path) VALUES('uji-replikasi','192.230.4.8','TEST','/soal13');"
+mariadb db_shibuya_K38 -e "SELECT * FROM request_logs WHERE path='/soal13' ORDER BY id DESC LIMIT 1;"
+```
+
+![](assets/cek-master-yaga.png) 
+
+Cek Slave di node 'inumaki'
+
+```bash 
+mariadb -e 'SHOW SLAVE STATUS\G'
+mariadb db_shibuya_K38 -e "SELECT * FROM request_logs WHERE path='/soal13' ORDER BY id DESC LIMIT 1;"
+```
+
+![](assets/cek-slave-inumaki.png) 
+
 <br/>
 
 #### Soal 14
@@ -741,7 +761,7 @@ bash setup-worker.sh <nama node>
 
 ![](assets/setup-worker.png) <br/>
 
-Cek di node
+Cek di node 'itadori' setelah menyelesaikan Soal 15-16
 
 ```bash
 for ip in 192.230.4.3 192.230.4.4 192.230.4.5 192.230.4.6 192.230.4.7; do
@@ -750,6 +770,10 @@ done
 curl -i http://jujutsu.k38.com/
 curl -i http://jujutsu.k38.com/api
 ```
+
+![](assets/cek-setup-worker.png)
+
+<br/>
 
 #### Soal 15
 
@@ -771,6 +795,14 @@ bash load-balancer-test
 
 ![](assets/load-balancer-test.png) <br/>
 
+Cek request API
+
+```bash
+cat /root/evidence/rasio-api.jsonl
+```
+
+![](assets/bukti-json.png)
+
 <br/>
 
 #### Soal 16
@@ -787,13 +819,15 @@ bash reverse-proxy.sh
 
 ![](assets/reverse-proxy.png) <br/>
 
-Cek di node
+Cek di node 'itadori'
 
 ```bash
 for i in 1 2 3 4 5 6; do curl -s "http://jujutsu.k38.com/?rr=$i"; done
 curl -i http://www.jujutsu.k38.com/
 curl -i http://jujutsu.k38.com/api
 ```
+
+![](assets/cek-routing.png)
 
 <br/>
 
@@ -811,19 +845,24 @@ bash real-client-ip.sh
 
 ![](assets/real-client-ip.png) <br/>
 
-Cek di node
+Cek API apakah sudah mencatat IP asal client, bukan IP proxy atau header palsu di node 'itadori'
 
 ```bash
 ip -4 addr show eth0
 curl -s http://jujutsu.k38.com/api
-curl -s -H 'X-Real-IP: 8.8.8.8' -H 'X-Forwarded-For: 8.8.8.8' http://jujutsu.k38.com/api
+curl -s -H 'X-Real-IP: 8.8.8.8' -H 'X-Forwarded-For: 8.8.8.8' \
+  http://jujutsu.k38.com/api
 ```
 
-di node yaga
+![](assets/bukti-di-itadori.png.png)
+
+di node 'yaga'
 
 ```bash
 mariadb db_shibuya_K38 -e 'SELECT id,worker,client_ip,method,path,created_at FROM request_logs ORDER BY id DESC LIMIT 12;'
 ```
+
+![](assets/bukti-di-yaga.png)
 
 <br/>
 
@@ -855,6 +894,10 @@ done
 service nginx start
 ```
 
+Uji API
+
+![](assets/uji-api.png)
+
 <br/>
 
 #### Soal 19
@@ -871,15 +914,23 @@ bash cache-rate-limit.sh
 
 ![](assets/cache-rate-limit.png) <br/>
 
+Cek menggunakan URL sama dua kali agar terlihat MISS lalu HIT di node 'itadori'
+
 ```bash
-# Pada client: gunakan URL sama dua kali agar terlihat MISS lalu HIT
 key=$(date +%s)
 curl -i "http://jujutsu.k38.com/?cachetest=$key"
 curl -i "http://jujutsu.k38.com/?cachetest=$key"
+```
 
-# Pada client: uji API secara paralel
+![](assets/client-miss-hit.png)
+
+Uji API secara paralel di node 'itadori'
+
+```bash
 seq 1 100 | xargs -P 30 -I '{}' curl -s -o /dev/null -w '%{http_code}\n' http://jujutsu.k38.com/api | sort | uniq -c
 ```
+
+![](assets/uji-api-paralel.png)
 
 <br/>
 
@@ -892,23 +943,54 @@ Sebelum Curtain di Shibuya resmi dibuka, Kusakabe memimpin audit untuk menguji k
 Jalankan `rate-mode.sh baseline` di node `gojo`
 
 ```bash
+cp evidence/access.log evidence/sebelum-demo-access.log
+truncate -s 0 evidence/access.log
 bash rate-mode.sh baseline
 ```
+
+![](assets/rate-mode-baseline.png)
 
 Jalankan `benchmark.sh baseline` di node `kusakabe`
 
 ```bash
-bash benchmark.sh baseline
+sh benchmark.sh baseline
 ```
+
+![](assets/benchmark-baseline.png)
 
 Jalankan `rate-mode.sh active` di node `gojo`
 
 ```bash
+cp evidence/access.log evidence/baseline-access.log
+truncate -s 0 /evidence/access.log
 bash rate-mode.sh active
 ```
+
+![](assets/rate-mode-active.png)
 
 Jalankan `benchmark.sh active` di node `kusakabe`
 
 ```bash
-bash benchmark.sh active
+sh benchmark.sh active
 ```
+
+![](assets/benchmark-active.png)
+
+Cek hasil di node 'Kusakabe' 
+
+```bash
+cat /root/evidence/baseline-web.txt
+cat /root/evidence/active-web.txt
+cat /root/evidence/baseline-api.txt
+cat /root/evidence/active-api.txt
+```
+
+Cek jenis respons di Gojo 
+
+```bash
+grep -c 'status=429' /root/evidence/active-access.log || true
+grep -c 'limit=REJECTED' /root/evidence/active-access.log || true
+grep 'status=50' /root/evidence/active-access.log | tail
+```
+
+![](assets/respons-di-gojo.png)
