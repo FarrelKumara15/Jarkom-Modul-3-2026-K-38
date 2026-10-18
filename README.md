@@ -634,7 +634,7 @@ bash dns-slave.sh
 
 ![](assets/dns-slave.png) <br/>
 
-Uji DNS di itadori
+Uji DNS di node `itadori`
 
 ```bash
 dig @192.230.1.2 jujutsu.k38.com SOA +noall +answer
@@ -686,7 +686,7 @@ bash dns-record-slave.sh
 
 ![](assets/dns-record-slave.png) 
 
-Uji DNS di node 'itadori'
+Uji DNS di node `itadori`
 
 ```bash
 dig @192.230.1.2 jujutsu.k38.com A +noall +answer
@@ -724,7 +724,7 @@ bash database-slave.sh
 
 ![](assets/database-slave.png) 
 
-Cek Master di node 'yaga'
+Cek Master di node `yaga`
 
 ```bash
 mariadb -e 'SHOW MASTER STATUS;'
@@ -734,7 +734,7 @@ mariadb db_shibuya_K38 -e "SELECT * FROM request_logs WHERE path='/soal13' ORDER
 
 ![](assets/cek-master-yaga.png) 
 
-Cek Slave di node 'inumaki'
+Cek Slave di node `inumaki`
 
 ```bash 
 mariadb -e 'SHOW SLAVE STATUS\G'
@@ -761,7 +761,7 @@ bash setup-worker.sh <nama node>
 
 ![](assets/setup-worker.png) <br/>
 
-Cek di node 'itadori' setelah menyelesaikan Soal 15-16
+Cek di node `itadori` setelah menyelesaikan Soal 15-16
 
 ```bash
 for ip in 192.230.4.3 192.230.4.4 192.230.4.5 192.230.4.6 192.230.4.7; do
@@ -819,7 +819,7 @@ bash reverse-proxy.sh
 
 ![](assets/reverse-proxy.png) <br/>
 
-Cek di node 'itadori'
+Cek di node `itadori`
 
 ```bash
 for i in 1 2 3 4 5 6; do curl -s "http://jujutsu.k38.com/?rr=$i"; done
@@ -856,7 +856,7 @@ curl -s -H 'X-Real-IP: 8.8.8.8' -H 'X-Forwarded-For: 8.8.8.8' \
 
 ![](assets/bukti-di-itadori.png.png)
 
-di node 'yaga'
+di node `yaga`
 
 ```bash
 mariadb db_shibuya_K38 -e 'SELECT id,worker,client_ip,method,path,created_at FROM request_logs ORDER BY id DESC LIMIT 12;'
@@ -924,7 +924,7 @@ curl -i "http://jujutsu.k38.com/?cachetest=$key"
 
 ![](assets/client-miss-hit.png)
 
-Uji API secara paralel di node 'itadori'
+Uji API secara paralel di node `itadori`
 
 ```bash
 seq 1 100 | xargs -P 30 -I '{}' curl -s -o /dev/null -w '%{http_code}\n' http://jujutsu.k38.com/api | sort | uniq -c
@@ -976,7 +976,9 @@ sh benchmark.sh active
 
 ![](assets/benchmark-active.png)
 
-Cek hasil di node 'Kusakabe' 
+<br/>
+
+Cek hasil di node `kusakabe`
 
 ```bash
 cat /root/evidence/baseline-web.txt
@@ -985,7 +987,9 @@ cat /root/evidence/baseline-api.txt
 cat /root/evidence/active-api.txt
 ```
 
-Cek jenis respons di Gojo 
+
+
+Cek jenis respons di node `gojo`
 
 ```bash
 grep -c 'status=429' /root/evidence/active-access.log || true
